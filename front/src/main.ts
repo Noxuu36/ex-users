@@ -86,7 +86,7 @@ function login (){
 }
 //conexion avec email
 async function connexion(email:string){
-
+  //conexion avec token ( method POST)
   const response = await fetch(
     "http://localhost:3000/login",{
       method: "POST",
@@ -111,10 +111,10 @@ async function connexion(email:string){
 
 
 function logout(){
-  localStorage.removeItem("token");
+  localStorage.removeItem("token");  //retrait token
   console.log("Déconnecté");
   const liste = document.querySelector("#hours_list")as HTMLUListElement;
-  liste.innerHTML = ""; 
+  liste.innerHTML = ""; //remet la liste a 0 apres déconexion
 }
 
 //fct start, requete insert sous token
@@ -136,7 +136,7 @@ async function start(){
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`  //on donne la token a la demande
       },
-      body: JSON.stringify({})  
+      body: JSON.stringify({})  //mise de l'heure ( automatique)
       //pas de valeur mais obligatoire car POST
     });
 
@@ -199,6 +199,7 @@ async function getallhours(){
       }});
 
     const hoursList: hours[] = await response.json();
+    //tableau avec toutes les lignes de "hours"
 
     createhourlist(hoursList);
 }
@@ -210,7 +211,7 @@ function createhourlist(list: hours[]){
   list.forEach(hour =>{
     const li = document.createElement("li");
 
-    li.textContent = `${hour.start} - ${hour.end}`;
+    li.textContent = `${hour.start} - ${hour.end}`;  //créer un élément pour chaque "hours"
   
     liste.appendChild(li);
   });
