@@ -2,11 +2,16 @@ import Fastify, { FastifyReply, FastifyRequest } from "fastify";
 import "./database";
 import db from "./database";
 import cors from "@fastify/cors";
-import jwt from "@fastify/jwt";
+import jwt from "jsonwebtoken";
 import "fastify";
 
 
-//install jwt :  npm install @fastify/jwt
+//install : npm install jsonwebtoken
+//install types : npm install @types/jsonwebtoken
+
+
+const SECRET = "super-secret";
+
 
 //type pour user
 type User = {
@@ -15,14 +20,21 @@ type User = {
   email: string;
 };
 
+
 //type module pour fastify authenticate (obligatoire)
+// après — on ajoute aussi user dans FastifyRequest
 declare module "fastify" {
   interface FastifyInstance {
     authenticate: any;
   }
+  interface FastifyRequest {
+    user?: any; // déclare request.user pour TypeScript
+  }
 }
 
-const fastify = Fastify();  //instane serveur
+const fastify = Fastify();  //instance serveur
+
+
 
 
 //autorise toutes les méthodes avec justify
@@ -31,31 +43,44 @@ fastify.register(cors, {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 });
 
-//clées jwt ( obligatoire)
-fastify.register(jwt, {
-  secret: "super-secret"
-});
 
 
-//vigile pour les chemin qui demande le token (obligatoire)
-fastify.decorate("authenticate",async (request:FastifyRequest, reply:FastifyReply) => {
+
+//vigile pour les chemin qui demande le token ( a copier )
+fastify.decorate("authenticate", async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-        await request.jwtVerify();
+        const authHeader = request.headers.authorization;
+
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return reply.code(401).send({ error: "Unauthorized" });
+        }
+
+
+        const token = authHeader.split(" ")[1]; // extrait le token après "Bearer "
+        const decoded = jwt.verify(token, SECRET); // lève une erreur si invalide
+        request.user = decoded; // injecte le user dans la requête
+
+
     } catch (err) {
         return reply.code(401).send({ error: "Unauthorized" });
     }
 });
 
 
+
+
 console.log("sevreur démaré !");
 
-//requete de base création user ( pas de gesion de token) 
+
 fastify.post("/users",(request,reply)=>{
 
-    const {name , email} = request.body as {    //demande au body ( info a mettre dans le fetch)
+
+    const {name , email} = request.body as {
         name: string;
         email:string;
     };
+
 
     const query = db.prepare("INSERT INTO users (name, email) VALUES (?,?)");
     const result = query.run(name,email);
@@ -65,11 +90,14 @@ fastify.post("/users",(request,reply)=>{
     }
     reply.code(204).send();
 
+
 })
 
-//conexion user( post pour token) création du token ICI
+
+//conexion user( post pour token)
 fastify.post("/login",(request,reply)=> {
     const {email} = request.body as { email: string};
+
 
     const query = db.prepare(`SELECT * FROM users WHERE email = ?`);
     //résultat celon type perso
@@ -80,43 +108,50 @@ fastify.post("/login",(request,reply)=> {
         return;
     }
 
+
     //création du token =
     // clée avec les info sur le user actuellement connécté
-    const token = fastify.jwt.sign ({
+    const token = jwt.sign({
         id: user.id,
         name: user.name,
         email: user.email
-    });
+    }, SECRET, { expiresIn: "1h" });
+
 
     //retour du token
     reply.send({token});
 
+
 })
 
 
-fastify.post("/hours/start",{preHandler: fastify.authenticate}, //vérifie si on a la token dans le header
+
+
+fastify.post("/hours/start",{preHandler: fastify.authenticate},
         async (request,reply)=>{
-            //obtiens les données de user connécté via le token
             const user = request.user as {id: number}
 
-            //création d une table hour associé à l'utilisateur
+
             db.prepare(`
                 INSERT INTO hours (userId, start)
                 VALUES (?, datetime('now','localtime'))
             `).run(user.id);
-        
+       
+
 
             console.log("AUTH HEADER =", request.headers.authorization);
             console.log("USER =", request.user);
-
+           
             return { message: "ok"};
         }
 )
 
-fastify.put("/hours/end",{preHandler: fastify.authenticate},    //vérif token dans le header
+
+fastify.put("/hours/end",{preHandler: fastify.authenticate},
         async (request,reply)=>{
             //obtiens les données de user connécté via le token
             const user = request.user as {id: number};
+
 
             //prend le hours avec l id le plus élevé ( le dernier)
             db.prepare(`
@@ -130,19 +165,22 @@ fastify.put("/hours/end",{preHandler: fastify.authenticate},    //vérif token d
                     LIMIT 1
                     )
                 `).run(user.id);
-        
+       
             return { message: "ok"};
         }
 )
 
-fastify.get("/hours",{preHandler: fastify.authenticate},//vérif token dans le header
+
+fastify.get("/hours",{preHandler: fastify.authenticate},
     async (request,reply) =>{
         //obtiens les données de user connécté via le token
         const user = request.user as {id: number};
 
+
         const response = db.prepare(`SELECT * FROM hours
             WHERE userid = ?
             `).all(user.id);
+
 
             if(response.length === 0){
                 reply.code(404).send();
@@ -150,7 +188,9 @@ fastify.get("/hours",{preHandler: fastify.authenticate},//vérif token dans le h
             }
             reply.send(response);
 
+
     }
 )
+
 
 fastify.listen({port: 3000});

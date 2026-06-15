@@ -7,22 +7,27 @@ const fastify_1 = __importDefault(require("fastify"));
 require("./database");
 const database_1 = __importDefault(require("./database"));
 const cors_1 = __importDefault(require("@fastify/cors"));
-const jwt_1 = __importDefault(require("@fastify/jwt"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 require("fastify");
-const fastify = (0, fastify_1.default)(); //instane serveur
+//install : npm install jsonwebtoken
+//install types : npm install @types/jsonwebtoken
+const SECRET = "super-secret";
+const fastify = (0, fastify_1.default)(); //instance serveur
 //autorise toutes les méthodes avec justify
 fastify.register(cors_1.default, {
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 });
-//clées jwt ( obligatoire)
-fastify.register(jwt_1.default, {
-    secret: "super-secret"
-});
-//vigile pour les chemin qui demande le token
+//vigile pour les chemin qui demande le token ( a copier )
 fastify.decorate("authenticate", async (request, reply) => {
     try {
-        await request.jwtVerify();
+        const authHeader = request.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return reply.code(401).send({ error: "Unauthorized" });
+        }
+        const token = authHeader.split(" ")[1]; // extrait le token après "Bearer "
+        const decoded = jsonwebtoken_1.default.verify(token, SECRET); // lève une erreur si invalide
+        request.user = decoded; // injecte le user dans la requête
     }
     catch (err) {
         return reply.code(401).send({ error: "Unauthorized" });
@@ -52,11 +57,11 @@ fastify.post("/login", (request, reply) => {
     }
     //création du token =
     // clée avec les info sur le user actuellement connécté
-    const token = fastify.jwt.sign({
+    const token = jsonwebtoken_1.default.sign({
         id: user.id,
         name: user.name,
         email: user.email
-    });
+    }, SECRET, { expiresIn: "1h" });
     //retour du token
     reply.send({ token });
 });
