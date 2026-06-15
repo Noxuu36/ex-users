@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "rootDir": "./src",//fichier ou on a le typescript
+        "outDir": "./dist",//fichier ou on ecrit les JS
+      
+        "strict": true,
+
+        "module": "nodenext",
+
+        "target": "es2022"
+
+
+    }
+}
