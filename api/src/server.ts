@@ -37,7 +37,7 @@ fastify.register(jwt, {
 });
 
 
-//vigile pour les chemin qui demande le token
+//vigile pour les chemin qui demande le token (obligatoire)
 fastify.decorate("authenticate",async (request:FastifyRequest, reply:FastifyReply) => {
     try {
         await request.jwtVerify();
@@ -49,9 +49,10 @@ fastify.decorate("authenticate",async (request:FastifyRequest, reply:FastifyRepl
 
 console.log("sevreur démaré !");
 
+//requete de base création user ( pas de gesion de token) 
 fastify.post("/users",(request,reply)=>{
 
-    const {name , email} = request.body as {
+    const {name , email} = request.body as {    //demande au body ( info a mettre dans le fetch)
         name: string;
         email:string;
     };
@@ -66,7 +67,7 @@ fastify.post("/users",(request,reply)=>{
 
 })
 
-//conexion user( post pour token)
+//conexion user( post pour token) création du token ICI
 fastify.post("/login",(request,reply)=> {
     const {email} = request.body as { email: string};
 
@@ -93,10 +94,12 @@ fastify.post("/login",(request,reply)=> {
 })
 
 
-fastify.post("/hours/start",{preHandler: fastify.authenticate},
+fastify.post("/hours/start",{preHandler: fastify.authenticate}, //vérifie si on a la token dans le header
         async (request,reply)=>{
+            //obtiens les données de user connécté via le token
             const user = request.user as {id: number}
 
+            //création d une table hour associé à l'utilisateur
             db.prepare(`
                 INSERT INTO hours (userId, start)
                 VALUES (?, datetime('now','localtime'))
@@ -105,12 +108,12 @@ fastify.post("/hours/start",{preHandler: fastify.authenticate},
 
             console.log("AUTH HEADER =", request.headers.authorization);
             console.log("USER =", request.user);
-            
+
             return { message: "ok"};
         }
 )
 
-fastify.put("/hours/end",{preHandler: fastify.authenticate},
+fastify.put("/hours/end",{preHandler: fastify.authenticate},    //vérif token dans le header
         async (request,reply)=>{
             //obtiens les données de user connécté via le token
             const user = request.user as {id: number};
@@ -132,7 +135,7 @@ fastify.put("/hours/end",{preHandler: fastify.authenticate},
         }
 )
 
-fastify.get("/hours",{preHandler: fastify.authenticate},
+fastify.get("/hours",{preHandler: fastify.authenticate},//vérif token dans le header
     async (request,reply) =>{
         //obtiens les données de user connécté via le token
         const user = request.user as {id: number};

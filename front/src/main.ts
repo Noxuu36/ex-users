@@ -1,8 +1,6 @@
 import './style.css'
 
 
-var connected = 0;
-
 type hours = {
   id: number,
   start: string,
@@ -10,15 +8,15 @@ type hours = {
   userid: number
 }
 
-var add_btn = document.querySelector("#add_btn");
+let add_btn = document.querySelector("#add_btn");
 
-var log_btn = document.querySelector("#loginbtn");
+let log_btn = document.querySelector("#loginbtn");
 
-var log_out = document.querySelector("#logout");
+let log_out = document.querySelector("#logout");
 
-var startbtn = document.querySelector("#start");
+let startbtn = document.querySelector("#start");
 
-var endbtn = document.querySelector("#end");
+let endbtn = document.querySelector("#end");
 
 log_btn?.addEventListener("click",login);
 
@@ -86,7 +84,7 @@ function login (){
   connexion(email);
 
 }
-
+//conexion avec email
 async function connexion(email:string){
 
   const response = await fetch(
@@ -102,6 +100,7 @@ async function connexion(email:string){
     console.log("user not found!");
     return;
   }
+  //récupère le token ( envoié par /login)
   const data = await response.json();
   //active le token avec les données fournie par data en backend:
   localStorage.setItem("token", data.token);
@@ -110,10 +109,10 @@ async function connexion(email:string){
   getallhours();
 }
 
+
 function logout(){
   localStorage.removeItem("token");
   console.log("Déconnecté");
-  connected = 0;
   const liste = document.querySelector("#hours_list")as HTMLUListElement;
   liste.innerHTML = ""; 
 }
@@ -135,10 +134,10 @@ async function start(){
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Authorization": `Bearer ${token}`  //on donne la token a la demande
       },
       body: JSON.stringify({})  
-      //pas de valeur mais obligatoir
+      //pas de valeur mais obligatoire car POST
     });
 
   if (!response.ok){
@@ -171,7 +170,7 @@ async function end(){
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
-      },
+      },//envoie token dans les headers
       body: JSON.stringify({})
     });
 
