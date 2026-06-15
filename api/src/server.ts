@@ -97,7 +97,8 @@ fastify.post("/login",(request,reply)=> {
 fastify.post("/hours/start",{preHandler: fastify.authenticate}, //vérifie si on a la token dans le header
         async (request,reply)=>{
             //obtiens les données de user connécté via le token
-            const user = request.user as {id: number}
+            const user = request.user as {id: number}  //confirme a ts que id est forcément number
+            //permet d'utiliser id en tant que number apres
 
             //création d une table hour associé à l'utilisateur
             db.prepare(`
